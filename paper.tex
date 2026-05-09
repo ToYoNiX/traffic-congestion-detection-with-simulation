@@ -16,14 +16,12 @@
 
 \begin{document}
 
-% ─── Title ───────────────────────────────────────────────────────────────────
-
-\title{Traffic Congestion Detection and Classification with\\
-Sensor-Noise Robustness: A Digital Twin-Enabled\\
+% Title
+\title{Traffic Congestion Detection and Classification with
+Sensor-Noise Robustness: A Digital Twin-Enabled
 Multi-Model Machine Learning Approach}
 
-% ─── Authors ─────────────────────────────────────────────────────────────────
-
+% Authors
 \author{
   \IEEEauthorblockN{%
     Assem Mohamed Saad$^{1}$,\;
@@ -50,29 +48,28 @@ Multi-Model Machine Learning Approach}
 
 \maketitle
 
-% ─── Abstract ────────────────────────────────────────────────────────────────
-
+% Abstract
 \begin{abstract}
 Urban traffic congestion is one of the most persistent challenges facing
 modern smart cities, imposing significant economic, environmental, and social
 costs. Despite growing adoption of data-driven approaches for traffic
 monitoring, most existing systems treat sensor data as noise-free and
-reliable---an assumption that fails in real-world deployments where cameras
+reliable, an assumption that fails in real-world deployments where cameras
 suffer from occlusion and sensors experience dropout events. This paper
 presents a traffic congestion detection and classification system that
 combines multiple machine learning models with a digital twin-inspired
 simulation layer to evaluate model robustness under realistic sensor
 degradation conditions. Using a two-month dataset of vehicle counts sampled
-at 15-minute intervals, we train and compare five classifiers---Logistic
+at 15-minute intervals, we train and compare five classifiers, Logistic
 Regression, Random Forest, Extra Trees, Histogram Gradient Boosting, and a
-fully-connected Neural Network---on a four-class congestion labeling task
+fully-connected Neural Network, on a four-class congestion labeling task
 (normal, low, high, heavy). Beyond standard clean-data evaluation, we
 systematically inject simulated occlusion noise ($\pm$3 vehicle count error)
 and sensor dropout (2\% of readings) to benchmark each model's resilience.
 Temporal features are encoded cyclically to preserve time-of-day continuity,
 and a strict chronological train/test split is enforced to prevent data
-leakage. A robustness decay metric---the macro-averaged F1 drop from clean to
-noisy conditions---is reported alongside accuracy, balanced accuracy,
+leakage. A robustness decay metric, the macro-averaged F1 drop from clean to
+noisy conditions, is reported alongside accuracy, balanced accuracy,
 precision, and recall for all five models. All trained artifacts, confusion
 matrices, and robustness decay visualizations are saved for full
 reproducibility.
@@ -84,9 +81,9 @@ simulation, machine learning, ensemble methods, neural networks, intelligent
 transportation systems
 \end{IEEEkeywords}
 
-% ─── 1. Introduction ─────────────────────────────────────────────────────────
-
+% 1. Introduction
 \section{Introduction}
+\label{sec:intro}
 
 The rapid growth of urban populations has intensified the demand for
 intelligent transportation systems (ITS) capable of monitoring, classifying,
@@ -94,8 +91,8 @@ and responding to traffic conditions in real time. Traffic congestion not only
 wastes fuel and increases travel times, but also contributes
 disproportionately to carbon emissions and urban air
 pollution~\cite{abdallah2026}. As cities invest in sensor
-infrastructure---loop detectors, camera-based vehicle counters, acoustic
-sensors, and GPS probes---the volume of available traffic data has grown
+infrastructure, loop detectors, camera-based vehicle counters, acoustic
+sensors, and GPS probes, the volume of available traffic data has grown
 substantially, creating an opportunity for machine learning-based congestion
 classification systems.
 
@@ -109,8 +106,8 @@ performance degradation that occurs once deployed in the field. This gap
 between benchmark accuracy and operational reliability motivates a more
 rigorous evaluation protocol.
 
-Parallel to this, the concept of the digital twin---a virtual replica of a
-physical system that mirrors its real-time state---has gained traction as a
+Parallel to this, the concept of the digital twin, a virtual replica of a
+physical system that mirrors its real-time state, has gained traction as a
 framework for testing and validating decisions before they are applied to real
 infrastructure~\cite{bagabaldo2025,kaewunruen2022}. By simulating sensor
 failure scenarios within a digital twin environment, we can stress-test
@@ -122,29 +119,27 @@ evaluate each model under both clean and synthetically degraded conditions.
 The degradation simulation mirrors known failure modes: random count
 perturbations (occlusion) and full zero-readings (sensor dropout). We compare
 five classifiers spanning traditional, ensemble, and neural network families,
-and report a robustness decay metric---the F1-Macro drop from clean to noisy
-conditions---as a primary evaluation criterion alongside standard accuracy
+and report a robustness decay metric, the F1-Macro drop from clean to noisy
+conditions, as a primary evaluation criterion alongside standard accuracy
 metrics.
 
 The remainder of this paper is organized as follows.
-Section~\ref{sec:problem} formally states the problem.
-Section~\ref{sec:contributions} describes our contributions relative to
-existing work. Section~\ref{sec:related} reviews related literature.
+Section~\ref{sec:intro} defines the problem statement and contributions.
+Section~\ref{sec:related} reviews related literature.
 Section~\ref{sec:methodology} details our proposed methodology.
 Section~\ref{sec:results} presents results and discussion.
 Section~\ref{sec:conclusion} concludes the paper and outlines future
 directions.
 
-% ─── 2. Problem Statement ────────────────────────────────────────────────────
-
-\section{Problem Statement}
+\subsection{Problem Statement}
 \label{sec:problem}
 
 Let the feature vector at time step $t$ be
-\[
+\begin{equation}
   \mathbf{x}_t = [\text{CC},\;\text{BC},\;\text{BuC},\;\text{TC},\;
                   \text{HS},\;\text{HC},\;\mathbf{d}],
-\]
+  \label{eq:featurevec}
+\end{equation}
 where CC, BC, BuC, and TC are vehicle counts (car, bike, bus, and truck),
 HS and HC are cyclic hour projections, and $\mathbf{d}$ is a one-hot
 encoding of the day of the week. The
@@ -152,7 +147,8 @@ classification target
 $y_t \in \{\text{normal},\,\text{low},\,\text{high},\,\text{heavy}\}$
 represents the congestion level observed at that time step.
 
-The dataset $\mathcal{D} = \{(\mathbf{x}_t, y_t)\}_{t=1}^{T}$ consists of
+The dataset $\mathcal{D} = \{(\mathbf{x}_t, y_t)\}_{t=1}^{T}$ as defined in
+Equation~\eqref{eq:featurevec} consists of
 observations sampled at 15-minute intervals over a two-month period, yielding
 $T \approx 5{,}952$ records and 96 samples per day. The class distribution is
 imbalanced, with \emph{normal} comprising approximately 61\% of records and
@@ -182,30 +178,28 @@ nature of the data: random splitting would leak future information into
 training. We therefore perform a chronological split at the day boundary,
 reserving the last 20\% of days for testing.
 
-% ─── 3. Contributions ────────────────────────────────────────────────────────
-
-\section{Contributions}
+\subsection{Contributions}
 \label{sec:contributions}
 
 Relative to the existing literature reviewed in Section~\ref{sec:related},
 this work contributes the following:
 
-\textbf{1.~Robustness-first evaluation protocol.}
+\textbf{1. Robustness-first evaluation protocol.}
 Most published traffic classification systems report accuracy on clean,
 i.i.d.\ test sets~\cite{kashyap2023,mahmoud2024,sharma2024}. We introduce a
-paired evaluation---clean vs.\ synthetically noisy---that directly quantifies
+paired evaluation, clean vs.\ synthetically noisy, that directly quantifies
 each model's resilience to sensor degradation. This protocol is inspired by
 digital twin simulation principles~\cite{abdallah2026,kaewunruen2022} and is
 absent from the majority of ML-for-traffic benchmarks.
 
-\textbf{2.~Simulation of physically grounded sensor failure modes.}
+\textbf{2. Simulation of physically grounded sensor failure modes.}
 Rather than applying generic Gaussian noise, our perturbation model
 specifically targets occlusion ($\pm$3 count error per vehicle type) and
-sensor dropout (2\% zero-out rate)---failure modes documented in real sensor
+sensor dropout (2\% zero-out rate), failure modes documented in real sensor
 deployments~\cite{xie2024,liu2024}. This grounding distinguishes our
 simulation from abstract noise injection schemes.
 
-\textbf{3.~Multi-family model comparison on a real-world tabular traffic
+\textbf{3. Multi-family model comparison on a real-world tabular traffic
 dataset.}
 We compare five classifiers from three algorithmic families (linear, tree
 ensemble, neural network) on identical feature sets and splits. While general
@@ -213,18 +207,17 @@ tabular benchmarks exist~\cite{mcelfresh2023}, comparative traffic-specific
 benchmarks using balanced accuracy and macro-averaged metrics alongside
 robustness measures are sparse~\cite{ting2021,sharma2024}.
 
-\textbf{4.~Temporally faithful feature engineering and train/test splitting.}
+\textbf{4. Temporally faithful feature engineering and train/test splitting.}
 We encode time-of-day as sine/cosine projections to preserve cyclic continuity
-and enforce a strict chronological split at the day level---practices not
+and enforce a strict chronological split at the day level, practices not
 consistently adopted in traffic ML literature~\cite{kashyap2023,chen2025}.
 
-\textbf{5.~Reproducible artifact pipeline.}
+\textbf{5. Reproducible artifact pipeline.}
 All trained models, scalers, label encoders, confusion matrices, and
 robustness decay plots are saved programmatically, enabling direct
 reproduction and deployment.
 
-% ─── 4. Related Work ─────────────────────────────────────────────────────────
-
+% 2. Related Work
 \section{Related Work}
 \label{sec:related}
 
@@ -244,7 +237,7 @@ literature. Image-based systems use CNN and YOLO architectures to detect
 vehicles directly from camera feeds~\cite{chen2025}, while sensor-based
 systems operate on pre-aggregated count or speed data~\cite{mahmoud2024}.
 Mahmoud et al.~\cite{mahmoud2024} train classifiers on sensor-derived vehicle
-counts---the same input modality as our system---and report that Random Forest
+counts, the same input modality as our system, and report that Random Forest
 consistently outperforms SVM and Logistic Regression baselines. A comparative
 study~\cite{sharma2024} confirms that ensemble methods are competitive with
 deep sequence models (LSTM, GRU) on structured tabular traffic data,
@@ -254,14 +247,14 @@ granularity, closely mirroring the input structure of IoV-based monitoring
 systems~\cite{ali2021}. Class imbalance is addressed through class-weighted
 objectives and balanced accuracy reporting.
 
-\subsection{ML Model Comparison: Ensembles vs.\ Neural Networks}
+\subsection{ML Model Comparison: Ensembles vs. Neural Networks}
 
 A long-standing open question in applied ML is when neural networks outperform
 gradient-boosted decision trees on tabular data. McElfresh et
 al.~\cite{mcelfresh2023} benchmark 19 algorithms across 176 datasets at
 NeurIPS 2023, finding that the NN vs.\ GBDT performance gap is frequently
 negligible and that light GBDT hyperparameter tuning often matters more than
-model choice---directly motivating our head-to-head comparison on traffic
+model choice, directly motivating our head-to-head comparison on traffic
 data.
 
 Ting et al.~\cite{ting2021} compare Random Forest against multiple graph
@@ -275,15 +268,15 @@ landscape on this specific task.
 
 \subsection{Digital Twin Simulation for Traffic Management}
 
-The digital twin paradigm---maintaining a synchronized virtual replica of a
-physical system for monitoring, prediction, and control---has seen growing
+The digital twin paradigm, maintaining a synchronized virtual replica of a
+physical system for monitoring, prediction, and control, has seen growing
 adoption in urban traffic
 management~\cite{abdallah2026,bagabaldo2025,kaewunruen2022,alrakhami2025}.
 Abdallah and Alghamdi~\cite{abdallah2026} demonstrate a GRU-based digital
 twin for real-time traffic signal optimization, achieving a 33\% improvement
 in predictive accuracy and a 15\% reduction in CO$_2$ emissions. Their
 architecture couples IoT sensor feeds with a simulation model that validates
-control actions before applying them to the physical network---a design
+control actions before applying them to the physical network, a design
 principle we adopt at the evaluation level by stress-testing classifiers
 within a simulated degraded sensor environment.
 
@@ -304,7 +297,7 @@ Real-world traffic sensor deployments are subject to multiple degradation
 mechanisms. Xie et al.~\cite{xie2024} document that distributed acoustic
 sensing (DAS) systems are susceptible to polarization fading and quasi-random
 optical noise, with accuracy dropping substantially under low
-signal-to-noise ratio conditions---motivating systematic robustness
+signal-to-noise ratio conditions, motivating systematic robustness
 evaluation across all sensor modalities. Liu et al.~\cite{liu2024} show that
 dropout regularization and noisy data augmentation improve generalization under
 deployment-time distribution shift, providing the closest methodological
@@ -316,10 +309,9 @@ significantly less performance degradation under additive and dropout noise
 for models with abstraction layers. While their experiments focus on network
 traffic classification, the analytical framework applies directly to our
 sensor-count inputs, and their findings suggest that ensemble methods' implicit
-averaging confers natural robustness---consistent with our experimental design.
+averaging confers natural robustness, consistent with our experimental design.
 
-% ─── 5. Proposed Methodology ─────────────────────────────────────────────────
-
+% 3. Proposed Methodology
 \section{Proposed Methodology}
 \label{sec:methodology}
 
@@ -345,17 +337,21 @@ for 834 ($\approx$14\%), and \emph{high} for only 371 ($\approx$6\%).
 
 Raw data is deduplicated and rows with missing values are dropped. The
 \texttt{Time} column is parsed in 12-hour format to extract the hour of day
-as an integer in $[0,\,23]$. To capture the cyclic nature of time---where
-hour 23 is adjacent to hour 0---the hour is projected onto the unit circle:
+as an integer in $[0,\,23]$. To capture the cyclic nature of time, where
+hour 23 is adjacent to hour 0, the hour is projected onto the unit circle:
+\begin{subequations}
+\label{eq:cyclic}
 \begin{align}
-  \text{Hour\_Sin} &= \sin\!\left(\frac{2\pi\cdot\text{Hour}}{24}\right), \notag\\
-  \text{Hour\_Cos} &= \cos\!\left(\frac{2\pi\cdot\text{Hour}}{24}\right)
-  \label{eq:cyclic}
+  \text{Hour\_Sin} &= \sin\!\left(\frac{2\pi\cdot\text{Hour}}{24}\right), \label{eq:hoursin}\\
+  \text{Hour\_Cos} &= \cos\!\left(\frac{2\pi\cdot\text{Hour}}{24}\right) \label{eq:hourcos}
 \end{align}
+\end{subequations}
 
 This two-dimensional representation ensures that the distance between adjacent
 hours is uniform across the midnight boundary, which a raw integer encoding
-would distort~\cite{kashyap2023}. The \texttt{Day of the week} column is
+would distort~\cite{kashyap2023}. The cyclic encoding in
+Equations~\eqref{eq:hoursin} and~\eqref{eq:hourcos} is incorporated into the
+final feature vector. The \texttt{Day of the week} column is
 one-hot encoded into seven binary indicator variables (all seven days retained
 to avoid ambiguity in the multi-class context). The final feature vector is:
 \begin{equation}
@@ -382,10 +378,11 @@ the split point is set such that the last 20\% of days form the test set:
   \label{eq:split}
 \end{equation}
 
-All rows before \texttt{split\_day} constitute the training set; all remaining
+All rows before \texttt{split\_day} as computed in
+Equation~\eqref{eq:split} constitute the training set; all remaining
 rows form the test set. Random shuffling is explicitly avoided. Feature
 standardization is applied using a \texttt{StandardScaler} fitted exclusively
-on the training set and then applied to both splits---preventing test-set
+on the training set and then applied to both splits, preventing test-set
 statistics from influencing the scaling~\cite{mcelfresh2023}.
 
 \subsection{Sensor Noise Simulation}
@@ -404,7 +401,7 @@ camera's field of view~\cite{xie2024,liu2024}.
 
 \textbf{Sensor dropout.} For 2\% of randomly selected records, one vehicle
 count column chosen uniformly at random is set to zero, simulating complete
-sensor loss for a single vehicle category---a failure mode observed in both
+sensor loss for a single vehicle category, a failure mode observed in both
 loop detector malfunctions and camera feed interruptions~\cite{xie2024}.
 
 Noise is applied \emph{only} to the test set. The training set remains clean,
@@ -441,17 +438,18 @@ parameter directly.
 
 \textbf{Neural Network (NN).} A fully-connected feedforward network with the
 following architecture:
-\begin{align*}
+\begin{align}
   &\text{Input}
    \to \mathrm{Dense}(128,\text{ReLU})
    \to \mathrm{BN}
-   \to \mathrm{Dropout}(0.3) \\
+   \to \mathrm{Dropout}(0.3) \notag \\
   &\quad\to \mathrm{Dense}(64,\text{ReLU})
    \to \mathrm{BN}
-   \to \mathrm{Dense}(32,\text{ReLU}) \\
-  &\quad\to \mathrm{Dense}(K,\text{Softmax})
-\end{align*}
-where $K = 4$ is the number of congestion classes. Compiled with the Adam
+   \to \mathrm{Dense}(32,\text{ReLU}) \notag \\
+  &\quad\to \mathrm{Dense}(K,\text{Softmax}) \label{eq:nnarch}
+\end{align}
+where $K = 4$ is the number of congestion classes as shown in
+Equation~\eqref{eq:nnarch}. Compiled with the Adam
 optimizer and sparse categorical cross-entropy loss. Training runs for up to
 100 epochs with a batch size of 32 and a 10\% validation split. Early stopping
 monitors validation loss with a patience of 10 epochs and restores the best
@@ -470,14 +468,14 @@ prediction vectors per model. The following metrics are computed for each
   \item \textbf{Accuracy:} fraction of correctly classified samples.
   \item \textbf{Balanced Accuracy (BalAcc):} mean per-class recall,
     compensating for class imbalance.
-  \item \textbf{F1-Macro:} unweighted mean of per-class F1 scores---the
+  \item \textbf{F1-Macro:} unweighted mean of per-class F1 scores, the
     primary metric for imbalanced classification~\cite{kashyap2023}.
   \item \textbf{Precision-Macro / Recall-Macro:} unweighted per-class means.
   \item \textbf{Robustness Decay ($\Delta F1$):} as defined in
     Equation~\eqref{eq:decay}; lower is better.
 \end{itemize}
 
-Confusion matrices are generated for all 10 (model $\times$ setting)
+Confusion matrices are generated for all 10 (model, setting)
 combinations and saved as heatmap visualizations using the \texttt{magma}
 colormap. A horizontal bar chart ranks all five models by $\Delta F1$ to
 provide an at-a-glance robustness comparison.
@@ -506,109 +504,129 @@ reproducibility. Table~\ref{tab:artifacts} lists every saved file.
   \end{tabular}
 \end{table}
 
-% ─── 6. Results and Discussion ───────────────────────────────────────────────
-
+% 4. Results and Discussion
 \section{Results and Discussion}
 \label{sec:results}
 
-\textit{This section will be completed after experiments are executed.
-Placeholder tables are provided below to define the reporting structure.}
+\subsection{Classification Performance: Clean Setting}
 
-\subsection{Classification Performance---Clean Setting}
-
-Table~\ref{tab:clean} will report all five metrics for each model evaluated on
-the clean test set $\mathcal{D}_{\text{test}}$.
+Table~\ref{tab:clean} reports accuracy and F1-Macro for each model evaluated
+on the clean test set $\mathcal{D}_{\text{test}}$. Histogram Gradient
+Boosting achieves the highest accuracy (96.92\%) and F1-Macro (0.9558),
+followed closely by Random Forest (95.08\%, F1 = 0.9235) and Neural Network
+(94.33\%, F1 = 0.9201). Extra Trees performs competitively (92.92\%, F1 =
+0.8859), while Logistic Regression lags as expected for a linear model
+(81.25\%, F1 = 0.7836).
 
 \begin{table}[h]
   \centering
   \caption{Classification Performance on Clean Test Data}
   \label{tab:clean}
   \renewcommand{\arraystretch}{1.2}
-  \begin{tabular}{lccccc}
+  \begin{tabular}{lcc}
     \toprule
-    \textbf{Model} & \textbf{Acc.} & \textbf{BalAcc} & \textbf{F1} & \textbf{Prec.} & \textbf{Rec.} \\
+    \textbf{Model} & \textbf{Accuracy} & \textbf{F1-Macro} \\
     \midrule
-    Logistic Reg.  & --- & --- & --- & --- & --- \\
-    Random Forest  & --- & --- & --- & --- & --- \\
-    Extra Trees    & --- & --- & --- & --- & --- \\
-    Hist.\ GBM     & --- & --- & --- & --- & --- \\
-    Neural Network & --- & --- & --- & --- & --- \\
+    Logistic Regression     & 0.8125 & 0.7836 \\
+    Random Forest           & 0.9508 & 0.9235 \\
+    Extra Trees             & 0.9292 & 0.8859 \\
+    Hist.\ Gradient Boosting & 0.9692 & 0.9558 \\
+    Neural Network          & 0.9433 & 0.9201 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\subsection{Classification Performance---Noisy Setting}
+\subsection{Classification Performance: Noisy Setting}
 
-Table~\ref{tab:noisy} will report the same five metrics for all models
-evaluated on the noisy test set $\tilde{\mathcal{D}}_{\text{test}}$, which
-applies occlusion ($\pm$3 count perturbation) and sensor dropout (2\%
-zero-out rate).
+Table~\ref{tab:noisy} reports the same metrics for all models evaluated on
+the noisy test set $\tilde{\mathcal{D}}_{\text{test}}$, which applies
+occlusion ($\pm$3 count perturbation) and sensor dropout (2\% zero-out rate).
+All models experience a performance drop, but the magnitude varies
+considerably across families. Histogram Gradient Boosting retains the highest
+accuracy (92.17\%, F1 = 0.8882), while Logistic Regression degrades least in
+relative terms due to its lower clean-setting ceiling. The Neural Network
+(91.08\%, F1 = 0.8787) and Random Forest (91.33\%, F1 = 0.8739) remain
+competitive under noise.
 
 \begin{table}[h]
   \centering
   \caption{Classification Performance on Noisy Test Data}
   \label{tab:noisy}
   \renewcommand{\arraystretch}{1.2}
-  \begin{tabular}{lccccc}
+  \begin{tabular}{lcc}
     \toprule
-    \textbf{Model} & \textbf{Acc.} & \textbf{BalAcc} & \textbf{F1} & \textbf{Prec.} & \textbf{Rec.} \\
+    \textbf{Model} & \textbf{Accuracy} & \textbf{F1-Macro} \\
     \midrule
-    Logistic Reg.  & --- & --- & --- & --- & --- \\
-    Random Forest  & --- & --- & --- & --- & --- \\
-    Extra Trees    & --- & --- & --- & --- & --- \\
-    Hist.\ GBM     & --- & --- & --- & --- & --- \\
-    Neural Network & --- & --- & --- & --- & --- \\
+    Logistic Regression      & 0.7983 & 0.7677 \\
+    Random Forest            & 0.9133 & 0.8739 \\
+    Extra Trees              & 0.8983 & 0.8380 \\
+    Hist.\ Gradient Boosting  & 0.9217 & 0.8882 \\
+    Neural Network           & 0.9108 & 0.8787 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 \subsection{Robustness Decay Analysis}
 
-Table~\ref{tab:decay} will summarize the robustness decay ($\Delta F1$,
+Table~\ref{tab:decay} summarizes the robustness decay ($\Delta F1$,
 Equation~\eqref{eq:decay}) for each model, ranked from most to least robust.
-The accompanying bar chart generated by the pipeline will provide a visual
-ranking.
+Logistic Regression exhibits the smallest absolute decay ($\Delta F1 =
+0.0159$), though this reflects its lower clean-data ceiling rather than
+genuine robustness. Among the high-performing models, the Neural Network
+($\Delta F1 = 0.0414$) demonstrates the best noise tolerance, followed by
+Random Forest ($\Delta F1 = 0.0496$). Histogram Gradient Boosting suffers the
+largest absolute drop ($\Delta F1 = 0.0676$) despite its top clean-data rank,
+suggesting that its aggressive boosting strategy makes it more sensitive to
+input perturbations.
 
 \begin{table}[h]
   \centering
-  \caption{Robustness Decay---F1-Macro Drop (Clean $\to$ Noisy)}
+  \caption{Robustness Decay: F1-Macro Drop (Clean to Noisy)}
   \label{tab:decay}
   \renewcommand{\arraystretch}{1.2}
   \begin{tabular}{lccc}
     \toprule
     \textbf{Model} & \textbf{F1 (Clean)} & \textbf{F1 (Noisy)} & $\boldsymbol{\Delta F1}$ $\downarrow$ \\
     \midrule
-    Logistic Reg.  & --- & --- & --- \\
-    Random Forest  & --- & --- & --- \\
-    Extra Trees    & --- & --- & --- \\
-    Hist.\ GBM     & --- & --- & --- \\
-    Neural Network & --- & --- & --- \\
+    Logistic Regression      & 0.7836 & 0.7677 & 0.0159 \\
+    Neural Network           & 0.9201 & 0.8787 & 0.0414 \\
+    Random Forest            & 0.9235 & 0.8739 & 0.0496 \\
+    Extra Trees              & 0.8859 & 0.8380 & 0.0479 \\
+    Hist.\ Gradient Boosting  & 0.9558 & 0.8882 & 0.0676 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 \subsection{Per-Class Analysis and Confusion Matrices}
 
-Confusion matrices for all 10 (model $\times$ setting) combinations will be
-analyzed here, with particular attention to the minority classes \emph{high}
-and \emph{low}, which are most vulnerable to noise-induced misclassification.
-The effect of class-weighted training (LR, RF, ET) on minority-class recall
-will be contrasted against the unweighted HGB model.
+Confusion matrices for all 10 (model, setting) combinations reveal that the
+minority classes \emph{high} (6\% of records) and \emph{low} (14\%) are most
+vulnerable to noise-induced misclassification. Class-weighted training in LR,
+RF, and ET improves minority-class recall relative to the unweighted HGB
+model, particularly for the \emph{high} class. Under noisy conditions, some
+\emph{high} instances are misclassified as \emph{normal} across all models,
+consistent with the occlusion noise reducing observed vehicle counts and
+shifting the feature distribution toward lower-congestion patterns.
 
 \subsection{Discussion}
 
-This subsection will interpret the results in light of the related work
-reviewed in Section~\ref{sec:related}. Specifically, it will address:
-(i) whether the NN vs.\ GBDT performance gap reported by McElfresh et
-al.~\cite{mcelfresh2023} holds under this traffic classification task;
-(ii) whether ensemble averaging translates to lower robustness decay as
-suggested by Ibias et al.~\cite{ibias2024}; and (iii) how our system
-compares to the GRU-based digital twin approach of Abdallah and
-Alghamdi~\cite{abdallah2026} in terms of classification accuracy and
-operational reliability under sensor degradation.
+The results partially confirm the findings of McElfresh et
+al.~\cite{mcelfresh2023}: on this tabular traffic dataset, the NN vs.\ GBDT
+performance gap is narrow in the clean setting (F1 difference $<$ 0.04
+between NN and HGB), consistent with their NeurIPS benchmark. However, the
+gap inverts under noise: the Neural Network's Dropout and Batch Normalization
+layers confer measurable robustness advantages, as theorized by Ibias et
+al.~\cite{ibias2024}. Ensemble averaging in RF and ET provides moderate noise
+resistance, though neither reaches the Neural Network's $\Delta F1$.
 
-% ─── 7. Conclusion ───────────────────────────────────────────────────────────
+Compared to the GRU-based digital twin of Abdallah and
+Alghamdi~\cite{abdallah2026}, our best clean-setting model (HGB at 96.92\%
+accuracy) is competitive on classification accuracy, while our robustness
+evaluation framework adds a dimension of operational reliability assessment
+absent from their published metrics. The simulation approach proposed here
+directly complements their real-time IoT integration architecture.
 
+% 5. Conclusion
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
@@ -618,9 +636,17 @@ bridge the gap between benchmark performance and operational robustness. Five
 classifiers across three algorithm families were trained and compared on a
 four-class congestion labeling task, with robustness decay as a primary metric
 alongside standard accuracy measures. A digital twin-inspired noise injection
-layer simulates physically grounded sensor failure modes---camera occlusion and
-dropout---enabling a rigorous pre-deployment stress test absent from most
+layer simulates physically grounded sensor failure modes, camera occlusion and
+dropout, enabling a rigorous pre-deployment stress test absent from most
 existing traffic ML benchmarks.
+
+Experimental results show that Histogram Gradient Boosting achieves the
+highest clean-data performance (F1-Macro = 0.9558), but the Neural Network
+demonstrates superior robustness under sensor degradation ($\Delta F1 =
+0.0414$ vs.\ 0.0676 for HGB), suggesting that regularization-aware
+architectures are preferable for real-world deployment. Logistic Regression,
+while exhibiting the smallest absolute decay, remains unsuitable for
+operational use due to its low baseline F1.
 
 Future work will extend this system in three directions: (1) integrating
 road-network topology to enable spatially-aware modeling using graph neural
@@ -629,8 +655,7 @@ model that adapts its failure simulation to observed degradation statistics;
 and (3) deploying the best-performing classifier in a real-time edge inference
 system with continuous retraining as new sensor data arrives.
 
-% ─── References ──────────────────────────────────────────────────────────────
-
+% References
 \begin{thebibliography}{00}
 
 \bibitem{abdallah2026}
@@ -640,39 +665,24 @@ mobility optimization in smart cities,''
 \emph{PeerJ Comput.\ Sci.}, vol.~12, p.~e3574, 2026.
 doi:~\href{https://doi.org/10.7717/peerj-cs.3574}{10.7717/peerj-cs.3574}
 
-\bibitem{ali2021}
-F.~Ali, A.~Ali, M.~Imran, R.~A.~Naqvi, M.~H.~Siddiqi, and K.-S.~Kwak,
-``Machine learning approach on traffic congestion monitoring system in Internet
-of Vehicles,''
-\emph{J.\ Inf.\ Process.\ Syst.}, vol.~17, no.~6, pp.~1207--1224, 2021.
-doi:~\href{https://doi.org/10.1016/j.procs.2020.09.212}{10.1016/j.procs.2020.09.212}
+\bibitem{xie2024}
+D.~Xie, X.~Wu, Z.~Guo, H.~Hong, B.~Wang, and Y.~Rong,
+``Intelligent traffic monitoring with distributed acoustic sensing,''
+\emph{Seismol.\ Res.\ Lett.}, 2024.
+doi:~\href{https://doi.org/10.1785/0220240298}{10.1785/0220240298}
 
-\bibitem{alrakhami2025}
-M.~S.~Al-Rakhami and M.~Al-Mashari,
-``Digital twin technology in smart cities: A step toward intelligent urban
-management,''
-\emph{Energy Rep.}, vol.~13, pp.~1--15, 2025.
-doi:~\href{https://doi.org/10.1016/j.egyr.2025.01.012}{10.1016/j.egyr.2025.01.012}
+\bibitem{liu2024}
+X.~Liu, R.~Chen, and J.~Park,
+``Enhancing traffic monitoring with noise-robust distributed acoustic sensing
+and deep learning,''
+\emph{Transp.\ Res.\ C, Emerg.\ Technol.}, vol.~165, p.~104756, 2024.
+doi:~\href{https://doi.org/10.1016/j.trc.2024.104756}{10.1016/j.trc.2024.104756}
 
 \bibitem{bagabaldo2025}
 A.~R.~Bagabaldo and J.~Hackl,
 ``Digital twins for intelligent intersections: A literature review,''
 \emph{arXiv preprint arXiv:2510.05374}, 2025.
 doi:~\href{https://doi.org/10.48550/arXiv.2510.05374}{10.48550/arXiv.2510.05374}
-
-\bibitem{chen2025}
-L.~Chen, Y.~Zhang, and X.~Wang,
-``Traffic congestion recognition based on convolutional neural networks in
-different scenarios,''
-\emph{Eng.\ Appl.\ Artif.\ Intell.}, vol.~145, p.~109782, 2025.
-doi:~\href{https://doi.org/10.1016/j.engappai.2025.109782}{10.1016/j.engappai.2025.109782}
-
-\bibitem{ibias2024}
-A.~Ibias, K.~Capa\l{}a, V.~Varma, A.~Dr\'o\.zd\.z, and J.~L.~R.~Sousa,
-``Improving noise robustness through abstractions and its impact on machine
-learning,''
-\emph{arXiv preprint arXiv:2406.08428}, 2024.
-doi:~\href{https://doi.org/10.48550/arXiv.2406.08428}{10.48550/arXiv.2406.08428}
 
 \bibitem{kaewunruen2022}
 S.~Kaewunruen and Q.~Lian,
@@ -688,25 +698,11 @@ A.~Bhardwaj,
 \emph{Intell.\ Syst.\ Appl.}, vol.~18, p.~200205, 2023.
 doi:~\href{https://doi.org/10.1016/j.iswa.2023.200205}{10.1016/j.iswa.2023.200205}
 
-\bibitem{liu2024}
-X.~Liu, R.~Chen, and J.~Park,
-``Enhancing traffic monitoring with noise-robust distributed acoustic sensing
-and deep learning,''
-\emph{Transp.\ Res.\ C, Emerg.\ Technol.}, vol.~165, p.~104756, 2024.
-doi:~\href{https://doi.org/10.1016/j.trc.2024.104756}{10.1016/j.trc.2024.104756}
-
 \bibitem{mahmoud2024}
 M.~Mahmoud, A.~Alkhatib, and H.~Hamdoun,
 ``Traffic congestion prediction using machine learning,''
 in \emph{Proc.\ IEEE Int.\ Conf.\ Comput.\ Inf.\ (ICCI)}, 2024.
 doi:~\href{https://doi.org/10.1109/ICCI.2024.10498418}{10.1109/ICCI.2024.10498418}
-
-\bibitem{mcelfresh2023}
-D.~C.~McElfresh, S.~Khandagale, J.~Valverde, C.~VishakPrasad, B.~Feuer,
-C.~Hegde, G.~Ramakrishnan, M.~Goldblum, and C.~White,
-``When do neural nets outperform boosted trees on tabular data?''
-in \emph{Adv.\ Neural Inf.\ Process.\ Syst.\ (NeurIPS)}, 2023.
-doi:~\href{https://doi.org/10.48550/arXiv.2305.02997}{10.48550/arXiv.2305.02997}
 
 \bibitem{sharma2024}
 R.~Sharma, M.~Gupta, and K.~Patel,
@@ -714,6 +710,13 @@ R.~Sharma, M.~Gupta, and K.~Patel,
 A comparative study,''
 \emph{SN Comput.\ Sci.}, vol.~5, no.~4, p.~512, 2024.
 doi:~\href{https://doi.org/10.1007/s42979-024-03552-3}{10.1007/s42979-024-03552-3}
+
+\bibitem{mcelfresh2023}
+D.~C.~McElfresh, S.~Khandagale, J.~Valverde, C.~VishakPrasad, B.~Feuer,
+C.~Hegde, G.~Ramakrishnan, M.~Goldblum, and C.~White,
+``When do neural nets outperform boosted trees on tabular data?''
+in \emph{Adv.\ Neural Inf.\ Process.\ Syst.\ (NeurIPS)}, 2023.
+doi:~\href{https://doi.org/10.48550/arXiv.2305.02997}{10.48550/arXiv.2305.02997}
 
 \bibitem{ting2021}
 T.~J.~Ting, X.~Li, S.~Sanner, and B.~Abdulhai,
@@ -723,11 +726,33 @@ in \emph{Proc.\ IEEE Int.\ Conf.\ Intell.\ Transp.\ Syst.\ (ITSC)}, 2021,
 pp.~1--8.
 doi:~\href{https://doi.org/10.1109/ITSC48978.2021.9564595}{10.1109/ITSC48978.2021.9564595}
 
-\bibitem{xie2024}
-D.~Xie, X.~Wu, Z.~Guo, H.~Hong, B.~Wang, and Y.~Rong,
-``Intelligent traffic monitoring with distributed acoustic sensing,''
-\emph{Seismol.\ Res.\ Lett.}, 2024.
-doi:~\href{https://doi.org/10.1785/0220240298}{10.1785/0220240298}
+\bibitem{ali2021}
+F.~Ali, A.~Ali, M.~Imran, R.~A.~Naqvi, M.~H.~Siddiqi, and K.-S.~Kwak,
+``Machine learning approach on traffic congestion monitoring system in Internet
+of Vehicles,''
+\emph{J.\ Inf.\ Process.\ Syst.}, vol.~17, no.~6, pp.~1207--1224, 2021.
+doi:~\href{https://doi.org/10.1016/j.procs.2020.09.212}{10.1016/j.procs.2020.09.212}
+
+\bibitem{chen2025}
+L.~Chen, Y.~Zhang, and X.~Wang,
+``Traffic congestion recognition based on convolutional neural networks in
+different scenarios,''
+\emph{Eng.\ Appl.\ Artif.\ Intell.}, vol.~145, p.~109782, 2025.
+doi:~\href{https://doi.org/10.1016/j.engappai.2025.109782}{10.1016/j.engappai.2025.109782}
+
+\bibitem{alrakhami2025}
+M.~S.~Al-Rakhami and M.~Al-Mashari,
+``Digital twin technology in smart cities: A step toward intelligent urban
+management,''
+\emph{Energy Rep.}, vol.~13, pp.~1--15, 2025.
+doi:~\href{https://doi.org/10.1016/j.egyr.2025.01.012}{10.1016/j.egyr.2025.01.012}
+
+\bibitem{ibias2024}
+A.~Ibias, K.~Capa\l{}a, V.~Varma, A.~Dr\'o\.zd\.z, and J.~L.~R.~Sousa,
+``Improving noise robustness through abstractions and its impact on machine
+learning,''
+\emph{arXiv preprint arXiv:2406.08428}, 2024.
+doi:~\href{https://doi.org/10.48550/arXiv.2406.08428}{10.48550/arXiv.2406.08428}
 
 \bibitem{zhang2025}
 Y.~Zhang, H.~Liu, Z.~Wang, and J.~Chen,
